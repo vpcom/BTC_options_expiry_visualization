@@ -8,7 +8,12 @@ import {
 } from "./format.js";
 
 const BASE_COIN = "BTC";
-const REFRESH_RATE_IN_MS = 10000;
+const ui = {
+  refreshRateInMs: 10000,
+  visibleRows: 0,
+  hideDistance: false,
+  hideSymbols: false,
+};
 
 const state = {
   apiData: null,
@@ -17,12 +22,18 @@ const state = {
   nextRefreshAt: 0,
 };
 
+let refreshTimer = null;
+
 const elements = {
   indexPrice: document.getElementById("indexPrice"),
   expiryDate: document.getElementById("expiryDate"),
   expiryCountdown: document.getElementById("expiryCountdown"),
   targetStrike: document.getElementById("targetStrike"),
   tableBody: document.getElementById("tableBody"),
+  refreshRate: document.getElementById("refreshRate"),
+  visibleRows: document.getElementById("visibleRows"),
+  hideDistance: document.getElementById("hideDistance"),
+  hideSymbols: document.getElementById("hideSymbols"),
 };
 
 function renderLoading() {
@@ -33,14 +44,35 @@ function renderError(message) {
   elements.tableBody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
 }
 
+function getVisibleRows(rows, atmStrike) {
+  if (!ui.visibleRows || rows.length <= ui.visibleRows) return rows;
+
+  const atmIndex = rows.findIndex((row) => row.strike === atmStrike);
+
+  if (atmIndex === -1) return rows.slice(0, ui.visibleRows);
+
+  const half = Math.floor(ui.visibleRows / 2);
+  let start = Math.max(0, atmIndex - half);
+  let end = start + ui.visibleRows;
+
+  if (end > rows.length) {
+    end = rows.length;
+    start = end - ui.visibleRows;
+  }
+
+  return rows.slice(start, end);
+}
+
 function renderRows(rows) {
+  const showSymbols = !ui.hideSymbols;
+
   elements.tableBody.innerHTML = rows
     .map(
       (row) =>
         `<tr class="${row.isATM ? "atm" : ""}">
-           <td class="${row.isHighlightCall ? "highlight-call" : ""}">${row.call ? row.call.symbol : ""}</td>
+           <td class="${row.isHighlightCall ? "highlight-call" : ""}">${row.call && showSymbols ? row.call.symbol : ""}</td>
            <td>${formatStrike(row.strike)}</td>
-           <td class="${row.isHighlightPut ? "highlight-put" : ""}">${row.put ? row.put.symbol : ""}</td>
+           <td class="${row.isHighlightPut ? "highlight-put" : ""}">${row.put && showSymbols ? row.put.symbol : ""}</td>
          </tr>`,
     )
     .join("");
@@ -67,7 +99,7 @@ function render() {
   }
 
   renderSummary(state.apiData, state.appData);
-  renderRows(state.appData.rows);
+  renderRows(getVisibleRows(state.appData.rows, state.appData.atmStrike));
 }
 
 async function refresh() {
@@ -86,7 +118,7 @@ async function refresh() {
     state.error = error;
   }
 
-  state.nextRefreshAt = Date.now() + REFRESH_RATE_IN_MS;
+  state.nextRefreshAt = Date.now() + ui.refreshRateInMs;
   render();
 }
 
@@ -98,11 +130,50 @@ function countdown() {
   );
 }
 
-function startTimers() {
-  setInterval(refresh, REFRESH_RATE_IN_MS);
+function scheduleRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+
+  if (ui.refreshRateInMs > 0) {
+    refreshTimer = setInterval(refresh, ui.refreshRateInMs);
+  }
+}
+
+function bindControls() {
+  if (elements.refreshRate) {
+    elements.refreshRate.addEventListener("change", (event) => {
+      ui.refreshRateInMs = Number(event.target.value);
+      scheduleRefresh();
+    });
+  }
+
+  if (elements.visibleRows) {
+    elements.visibleRows.addEventListener("change", (event) => {
+      ui.visibleRows = Number(event.target.value);
+      render();
+    });
+  }
+
+  if (elements.hideDistance) {
+    elements.hideDistance.addEventListener("change", (event) => {
+      ui.hideDistance = event.target.checked;
+      render();
+    });
+  }
+
+  if (elements.hideSymbols) {
+    elements.hideSymbols.addEventListener("change", (event) => {
+      ui.hideSymbols = event.target.checked;
+      render();
+    });
+  }
+}
+
+function startCountdownTimer() {
   setInterval(countdown, 1000);
 }
 
+bindControls();
 render();
 refresh();
-startTimers();
+scheduleRefresh();
+startCountdownTimer();

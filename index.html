@@ -10,25 +10,61 @@
     <div class="app">
       <header class="header">
         <div class="stat">
-          <div class="label">Base Coin</div>
-          <div class="value">BTC</div>
-        </div>
-
-        <div class="stat">
           <div class="label">Index Price</div>
-          <div id="indexPrice" class="value">70000</div>
+          <div id="indexPrice" class="value">-</div>
         </div>
 
         <div class="stat">
           <div class="label">Expiry</div>
-          <div id="expiryDate" class="value">20 Mar 2026</div>
+          <div id="expiryDate" class="value">-</div>
         </div>
 
         <div class="stat">
           <div class="label">Time to Expiry</div>
-          <div id="expiryCountdown" class="value"></div>
+          <div id="expiryCountdown" class="value">-</div>
+        </div>
+
+        <div class="stat">
+          <div class="label">Target Strike</div>
+          <div id="targetStrike" class="value">-</div>
         </div>
       </header>
+
+      <div class="controls">
+        <div class="control">
+          <label for="refreshRate">Refresh</label>
+          <select id="refreshRate">
+            <option value="0">Off</option>
+            <option value="5000">5s</option>
+            <option value="10000" selected>10s</option>
+            <option value="20000">20s</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="visibleRows">Rows</label>
+          <select id="visibleRows">
+            <option value="0">All</option>
+            <option value="11">11</option>
+            <option value="21">21</option>
+            <option value="31">31</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label>
+            <input type="checkbox" id="hideDistance" />
+            Hide distance
+          </label>
+        </div>
+
+        <div class="control">
+          <label>
+            <input type="checkbox" id="hideSymbols" />
+            Hide symbols
+          </label>
+        </div>
+      </div>
 
       <div class="chain-wrapper">
         <table class="chain">
@@ -43,7 +79,7 @@
         </table>
       </div>
 
-      <footer class="footer">BTC Options - Static Prototype</footer>
+      <footer class="footer">BTC Options - Live Binance Data</footer>
     </div>
 
     <script type="module" src="./src/app.js"></script>
