@@ -33,16 +33,6 @@
       <div class="controls">
         <div class="controls-left">
           <div class="control">
-            <label for="refreshRate">Refresh</label>
-            <select id="refreshRate">
-              <option value="0">Off</option>
-              <option value="5000">5s</option>
-              <option value="10000" selected>10s</option>
-              <option value="20000">20s</option>
-            </select>
-          </div>
-
-          <div class="control">
             <label for="visibleRows">Rows</label>
             <select id="visibleRows">
               <option value="0">All</option>
@@ -53,25 +43,35 @@
           </div>
 
           <div class="control">
-            <label for="hideDistance">Hide distance</label>
-            <input type="checkbox" id="hideDistance" />
+            <label for="refreshRate">Refresh</label>
+            <select id="refreshRate">
+              <option value="0">Off</option>
+              <option value="5000">5s</option>
+              <option value="10000" selected>10s</option>
+              <option value="20000">20s</option>
+            </select>
           </div>
 
           <div class="control">
-            <label for="hideSymbols">Hide symbols</label>
+            <input type="checkbox" id="hideDistance" />
+            <label for="hideDistance">Hide distance</label>
+          </div>
+
+          <div class="control">
             <input type="checkbox" id="hideSymbols" />
+            <label for="hideSymbols">Hide symbols</label>
           </div>
         </div>
 
+        <div
+          id="copyMessage"
+          class="clipboard-message"
+          aria-live="polite"
+        ></div>
         <div class="controls-right">
           <div id="refreshCounter" class="refresh-counter" aria-live="polite">
             Next refresh: -
           </div>
-          <div
-            id="copyMessage"
-            class="clipboard-message"
-            aria-live="polite"
-          ></div>
         </div>
       </div>
 

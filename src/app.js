@@ -106,6 +106,8 @@ function copyToClipboard(text) {
 }
 
 function heatOpacity(strike, indexPrice) {
+  if (!strike || !indexPrice) return 0;
+
   const dist = Math.abs(strike - indexPrice) / indexPrice;
   return Math.max(0, 0.22 - dist * 2.0);
 }
@@ -117,27 +119,63 @@ function applyUiState() {
   elements.app.classList.toggle("hide-symbols", uiSettings.hideSymbols);
 }
 
-function formatDistance(strike, indexPrice) {
-  if (!strike || !indexPrice) return "-";
+function formatDistance(distanceToPrice) {
+  if (distanceToPrice == null || Number.isNaN(distanceToPrice)) return "-";
 
-  const percentage = ((strike - indexPrice) / indexPrice) * 100;
+  const percentage = distanceToPrice * 100;
 
   return `${percentage >= 0 ? "+" : ""}${percentage.toFixed(2)}%`;
 }
 
-function getOptionCellMarkup(option, baseClass, highlightClass) {
-  const classes = [baseClass, highlightClass].filter(Boolean).join(" ");
+function rowClass(row) {
+  return row.isATM ? "atm" : "";
+}
 
-  if (!option) {
-    return `<td class="${classes}"><span class="empty">-</span></td>`;
-  }
-
+function tagHtml(option, showSymbols) {
   const tagClass = option.tag === "ITM" ? "itm" : "otm";
+  const symbolHtml = showSymbols
+    ? `<span class="symbol" title="Click to copy">${option.symbol}</span>`
+    : "";
 
-  return `<td class="${classes}">
+  return `
     <span class="tag ${tagClass}">${option.tag}</span>
-    <span class="symbol" title="Click to copy">${option.symbol}</span>
-  </td>`;
+    ${symbolHtml}
+  `;
+}
+
+function sideCellClass(side, row) {
+  const baseClass = side === "CALL" ? "call-cell" : "put-cell";
+  const highlightClass =
+    side === "CALL"
+      ? row.isHighlightCall
+        ? "highlight-call"
+        : ""
+      : row.isHighlightPut
+        ? "highlight-put"
+        : "";
+
+  return [baseClass, highlightClass].filter(Boolean).join(" ");
+}
+
+function renderRow(row, indexPrice, showSymbols, showDistance) {
+  const opacity = heatOpacity(row.strike, indexPrice);
+  const dist = row.call?.distToPrice ?? row.put?.distToPrice;
+  const distanceHtml = showDistance
+    ? `<span class="distance">${
+        dist != null ? formatDistance(dist) : '<span class="empty">-</span>'
+      }</span>`
+    : "";
+
+  return `
+    <tr class="chain-row ${rowClass(row)}" style="background-color: rgba(106, 167, 255, ${opacity});">
+      <td class="${sideCellClass("CALL", row)}">${row.call ? tagHtml(row.call, showSymbols) : ""}</td>
+      <td class="strike">
+        <span class="strike-value">${formatStrike(row.strike)}</span>
+        ${distanceHtml}
+      </td>
+      <td class="${sideCellClass("PUT", row)}">${row.put ? tagHtml(row.put, showSymbols) : ""}</td>
+    </tr>
+  `;
 }
 
 function renderRows(rows) {
@@ -147,27 +185,11 @@ function renderRows(rows) {
   }
 
   const indexPrice = state.apiData?.indexPrice ?? null;
+  const showSymbols = !uiSettings.hideSymbols;
+  const showDistance = !uiSettings.hideDistance;
 
   elements.tableBody.innerHTML = rows
-    .map(
-      (row) =>
-        `<tr class="chain-row">
-          ${getOptionCellMarkup(
-            row.call,
-            "call-cell",
-            row.isHighlightCall ? "highlight-call" : "",
-          )}
-          <td class="strike${row.isATM ? " atm" : ""}">
-            <span>${formatStrike(row.strike)}</span>
-            <span class="distance">${formatDistance(row.strike, indexPrice)}</span>
-          </td>
-          ${getOptionCellMarkup(
-            row.put,
-            "put-cell",
-            row.isHighlightPut ? "highlight-put" : "",
-          )}
-        </tr>`,
-    )
+    .map((row) => renderRow(row, indexPrice, showSymbols, showDistance))
     .join("");
 }
 

@@ -46,6 +46,7 @@ export function transformApiData(rawSymbols, baseCoin, indexPrice) {
       symbol: raw.symbol,
       side: raw.side,
       strike,
+      distToPrice: indexPrice ? (strike - indexPrice) / indexPrice : null,
       tag: makeCallAndPutTags(raw.side, strike, indexPrice),
     };
     if (!rowsMap.has(strike)) {
