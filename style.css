@@ -62,3 +62,16 @@ body {
   color: #8a93b2;
   text-align: center;
 }
+
+/* Highlighting */
+.atm {
+  background: rgba(255, 230, 150, 0.25);
+}
+.highlight-call {
+  font-weight: 700;
+  color: #0a84ff;
+}
+.highlight-put {
+  font-weight: 700;
+  color: #ff3b30;
+}
