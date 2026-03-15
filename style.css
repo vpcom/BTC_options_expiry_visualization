@@ -169,22 +169,22 @@ body {
 
 .chain-row:hover td {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .chain-row:hover td:first-child {
   box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    inset 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .chain-row:hover td:last-child {
   box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    inset -1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .strike-header,
@@ -214,8 +214,8 @@ body {
   box-shadow:
     inset 1px 0 0 rgba(255, 255, 255, 0.03),
     inset -1px 0 0 rgba(255, 255, 255, 0.03),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .atm {
@@ -223,14 +223,12 @@ body {
   font-weight: 600;
 }
 
-.highlight-call {
-  outline: 1px solid rgba(46, 204, 113, 0.8);
-  background: rgba(46, 204, 113, 0.12);
+.atm td {
+  background: rgba(18, 27, 51, 0.92) !important;
 }
 
-.highlight-put {
-  outline: 1px solid rgba(255, 120, 160, 0.8);
-  background: rgba(255, 120, 160, 0.12);
+.atm td.strike {
+  background: rgba(10, 16, 31, 0.98) !important;
 }
 
 .call-cell {

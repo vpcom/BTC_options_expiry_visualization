@@ -35,10 +35,10 @@
           <div class="control">
             <label for="visibleRows">Rows</label>
             <select id="visibleRows">
-              <option value="0">All</option>
-              <option value="11">11</option>
+              <option value="5">5</option>
+              <option value="11" selected>11</option>
+              <option value="15">15</option>
               <option value="21">21</option>
-              <option value="31">31</option>
             </select>
           </div>
 
@@ -47,8 +47,8 @@
             <select id="refreshRate">
               <option value="0">Off</option>
               <option value="5000">5s</option>
-              <option value="10000" selected>10s</option>
-              <option value="20000">20s</option>
+              <option value="10000">10s</option>
+              <option value="20000" selected>20s</option>
             </select>
           </div>
 
@@ -79,19 +79,19 @@
         <table class="chain">
           <thead>
             <tr class="section-header">
-              <th>BID QTY</th>
-              <th>BID</th>
-              <th>CALL</th>
-              <th>STRIKE</th>
-              <th>PUT</th>
-              <th>ASK</th>
-              <th>ASK QTY</th>
+              <th class="calls-title" colspan="3">CALLS</th>
+              <th class="strike-title">STRIKE</th>
+              <th class="puts-title" colspan="3">PUTS</th>
             </tr>
-            <!-- <tr class="column-header">
+            <tr class="column-header">
               <th>Contract</th>
-              <th class="strike-header">Level</th>
+              <th>Bid Qty</th>
+              <th>Bid</th>
+              <th class="strike-header">Strike / Distance</th>
+              <th>Ask</th>
+              <th>Ask Qty</th>
               <th>Contract</th>
-            </tr> -->
+            </tr>
           </thead>
           <tbody id="tableBody"></tbody>
         </table>

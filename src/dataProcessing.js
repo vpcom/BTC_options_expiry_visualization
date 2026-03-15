@@ -11,6 +11,8 @@ function makeCallAndPutTags(side, strike, indexPrice) {
   return "";
 }
 
+const TARGET_NEXT_FRIDAY_UTC = Date.UTC(2026, 2, 20, 8, 0, 0, 0);
+
 // Create rows objects, values, flags and summary info.
 export function transformApiData(rawSymbols, baseCoin, indexPrice) {
   const symbols = rawSymbols.filter(
@@ -25,18 +27,21 @@ export function transformApiData(rawSymbols, baseCoin, indexPrice) {
     };
   }
 
-  // pick earliest expiry
-  let targetExpiry = toNumber(symbols[0].expiryDate);
+  const targetExpiry = symbols.some(
+    (symbol) => toNumber(symbol.expiryDate) === TARGET_NEXT_FRIDAY_UTC,
+  )
+    ? TARGET_NEXT_FRIDAY_UTC
+    : null;
 
-  for (const s of symbols) {
-    const exp = toNumber(s.expiryDate);
-    if (exp < targetExpiry) targetExpiry = exp;
+  if (!targetExpiry) {
+    return {
+      targetExpiry: null,
+      atmStrike: null,
+      rows: [],
+    };
   }
 
   const rowsMap = new Map();
-
-  let highlightCall = null;
-  let highlightPut = null;
 
   for (const raw of symbols) {
     const strike = toNumber(raw.strikePrice);
@@ -63,17 +68,9 @@ export function transformApiData(rawSymbols, baseCoin, indexPrice) {
     const row = rowsMap.get(strike);
     if (raw.side === "CALL") {
       row.call = option;
-      // to review
-      if (!highlightCall || strike < highlightCall.strike) {
-        highlightCall = option;
-      }
     }
     if (raw.side === "PUT") {
       row.put = option;
-      // to review
-      if (!highlightPut || strike > highlightPut.strike) {
-        highlightPut = option;
-      }
     }
   }
 
@@ -94,15 +91,9 @@ export function transformApiData(rawSymbols, baseCoin, indexPrice) {
     }
   }
 
-  // Marking ATM and highlighted options
+  // Marking ATM option row
   for (const row of rows) {
     row.isATM = row.strike === atmStrike;
-
-    row.isHighlightCall =
-      highlightCall && row.call && row.call.symbol === highlightCall.symbol;
-
-    row.isHighlightPut =
-      highlightPut && row.put && row.put.symbol === highlightPut.symbol;
   }
 
   return {

@@ -15,8 +15,8 @@ const INDEX_PRICE_FADE_DELAY_IN_MS = 180;
 const EMPTY_TABLE_MESSAGE = "No active contracts for the current expiry";
 
 const uiSettings = {
-  refreshRateInMs: 10000,
-  visibleRows: 0,
+  refreshRateInMs: 20000,
+  visibleRows: 11,
   hideDistance: false,
   hideSymbols: false,
 };
@@ -61,8 +61,7 @@ function renderError(message) {
 }
 
 function getVisibleRows(rows, atmStrike) {
-  if (!uiSettings.visibleRows || rows.length <= uiSettings.visibleRows)
-    return rows;
+  if (!uiSettings.visibleRows || rows.length <= uiSettings.visibleRows) return rows;
 
   const atmIndex = rows.findIndex((row) => row.strike === atmStrike);
 
@@ -164,30 +163,16 @@ function rowClass(row) {
   return row.isATM ? "atm" : "";
 }
 
-function tagHtml(option, showSymbols) {
+function tagHtml(option) {
   const tagClass = option.tag === "ITM" ? "itm" : "otm";
-  const symbolHtml = showSymbols
-    ? `<span class="symbol" title="Click to copy">${option.symbol}</span>`
-    : "";
 
   return `
     <span class="tag ${tagClass}">${option.tag}</span>
-    ${symbolHtml}
   `;
 }
 
-function sideCellClass(side, row) {
-  const baseClass = side === "CALL" ? "call-cell" : "put-cell";
-  const highlightClass =
-    side === "CALL"
-      ? row.isHighlightCall
-        ? "highlight-call"
-        : ""
-      : row.isHighlightPut
-        ? "highlight-put"
-        : "";
-
-  return [baseClass, highlightClass].filter(Boolean).join(" ");
+function sideCellClass(side) {
+  return side === "CALL" ? "call-cell" : "put-cell";
 }
 
 function renderRow(row, indexPrice, showSymbols, showDistance) {
@@ -195,8 +180,8 @@ function renderRow(row, indexPrice, showSymbols, showDistance) {
   const dist = row.call?.distToPrice ?? row.put?.distToPrice;
   const call = row.call || {};
   const put = row.put || {};
-  const callCellClass = sideCellClass("CALL", row);
-  const putCellClass = sideCellClass("PUT", row);
+  const callCellClass = sideCellClass("CALL");
+  const putCellClass = sideCellClass("PUT");
   const distanceHtml = showDistance
     ? `<span class="distance">${
         dist != null ? formatDistance(dist) : '<span class="empty">-</span>'
@@ -210,19 +195,25 @@ function renderRow(row, indexPrice, showSymbols, showDistance) {
     showSymbols && put.symbol
       ? `<span class="symbol" title="Click to copy">${put.symbol}</span>`
       : "";
+  const callContractHtml = call.symbol
+    ? `${callSymbolHtml}${tagHtml(call)}`
+    : "";
+  const putContractHtml = put.symbol
+    ? `${tagHtml(put)}${putSymbolHtml}`
+    : "";
 
   return `
     <tr class="chain-row ${rowClass(row)}" style="background-color: rgba(106, 167, 255, ${opacity});">
+      <td class="${callCellClass}">${callContractHtml}</td>
       <td class="${callCellClass}">${formatQty(call.bidQty)}</td>
       <td class="${callCellClass}">${formatOptionPrice(call.bid)}</td>
-      <td class="${callCellClass}">${callSymbolHtml}</td>
       <td class="strike">
         <span class="strike-value">${formatStrike(row.strike)}</span>
         ${distanceHtml}
       </td>
-      <td class="${putCellClass}">${putSymbolHtml}</td>
       <td class="${putCellClass}">${formatOptionPrice(put.ask)}</td>
       <td class="${putCellClass}">${formatQty(put.askQty)}</td>
+      <td class="${putCellClass}">${putContractHtml}</td>
     </tr>
   `;
 }
