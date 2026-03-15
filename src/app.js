@@ -8,11 +8,13 @@ import {
 } from "./format.js";
 
 const BASE_COIN = "BTC";
+const REFRESH_RATE_IN_MS = 10000;
 
 const state = {
   apiData: null,
   appData: null,
   error: null,
+  nextRefreshAt: 0,
 };
 
 const elements = {
@@ -24,20 +26,14 @@ const elements = {
 };
 
 function renderLoading() {
-  if (elements.tableBody) {
-    elements.tableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
-  }
+  elements.tableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
 }
 
 function renderError(message) {
-  if (elements.tableBody) {
-    elements.tableBody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
-  }
+  elements.tableBody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
 }
 
 function renderRows(rows) {
-  if (!elements.tableBody) return;
-
   elements.tableBody.innerHTML = rows
     .map(
       (row) =>
@@ -55,7 +51,7 @@ function renderSummary(apiData, appData) {
   elements.expiryDate.textContent = formatExpiry(appData.targetExpiry);
   elements.expiryCountdown.textContent = formatCountdown(appData.targetExpiry);
   if (elements.targetStrike) {
-    elements.targetStrike.textContent = formatStrike(appData.targetStrike);
+    elements.targetStrike.textContent = formatStrike(appData.atmStrike);
   }
 }
 
@@ -74,10 +70,9 @@ function render() {
   renderRows(state.appData.rows);
 }
 
-async function load() {
+async function refresh() {
   try {
-    const apiData = await fetchData(BASE_COIN);
-
+    const apiData = await fetchData();
     const appData = transformApiData(
       apiData.symbols,
       BASE_COIN,
@@ -91,8 +86,23 @@ async function load() {
     state.error = error;
   }
 
+  state.nextRefreshAt = Date.now() + REFRESH_RATE_IN_MS;
   render();
 }
 
+function countdown() {
+  if (!state.appData) return;
+
+  elements.expiryCountdown.textContent = formatCountdown(
+    state.appData.targetExpiry,
+  );
+}
+
+function startTimers() {
+  setInterval(refresh, REFRESH_RATE_IN_MS);
+  setInterval(countdown, 1000);
+}
+
 render();
-load();
+refresh();
+startTimers();
