@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>BTC Options Expiry Visualization</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="stat">
+          <div class="label">Index Price</div>
+          <div class="value">70000</div>
+        </div>
+
+        <div class="stat">
+          <div class="label">Expiry</div>
+          <div class="value">20 Mar 2026</div>
+        </div>
+
+        <div class="stat">
+          <div class="label">Time to Expiry</div>
+          <div class="value"></div>
+        </div>
+
+        <div class="stat">
+          <div class="label">Target Strike</div>
+          <div class="value"></div>
+        </div>
+      </header>
+
+      <div class="chain-wrapper">
+        <table class="chain">
+          <thead>
+            <tr>
+              <th>CALLS</th>
+              <th>STRIKE</th>
+              <th>PUTS</th>
+            </tr>
+          </thead>
+          <tbody id="chainBody"></tbody>
+        </table>
+      </div>
+
+      <footer class="footer">BTC Options - Static Prototype</footer>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
