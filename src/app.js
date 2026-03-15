@@ -1,10 +1,8 @@
+import { fetchData } from "./api.js";
+
 const state = {
-  rows: [
-    { call: "BTC-XXX-C", strike: "63,000", put: "BTC-XXX-P" },
-    { call: "BTC-XXX-C", strike: "64,000", put: "BTC-XXX-P" },
-    { call: "BTC-XXX-C", strike: "65,000", put: "BTC-XXX-P" },
-  ],
-  loading: false,
+  rows: [],
+  loading: true,
   error: null,
 };
 
@@ -41,5 +39,25 @@ function render() {
   renderRows(state.rows);
 }
 
-// Initial render
+async function load() {
+  try {
+    const snapshot = await fetchData();
+
+    // For now we still render mock rows
+    state.rows = [
+      { call: "BTC-XXX-C", strike: "63000", put: "BTC-XXX-P" },
+      { call: "BTC-XXX-C", strike: "64000", put: "BTC-XXX-P" },
+      { call: "BTC-XXX-C", strike: "65000", put: "BTC-XXX-P" },
+    ];
+
+    state.loading = false;
+  } catch (err) {
+    state.error = err.message;
+    state.loading = false;
+  }
+
+  render();
+}
+
 render();
+load();
