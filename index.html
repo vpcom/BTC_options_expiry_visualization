@@ -31,50 +31,62 @@
       </header>
 
       <div class="controls">
-        <div class="control">
-          <label for="refreshRate">Refresh</label>
-          <select id="refreshRate">
-            <option value="0">Off</option>
-            <option value="5000">5s</option>
-            <option value="10000" selected>10s</option>
-            <option value="20000">20s</option>
-          </select>
-        </div>
+        <div class="controls-left">
+          <div class="control">
+            <label for="refreshRate">Refresh</label>
+            <select id="refreshRate">
+              <option value="0">Off</option>
+              <option value="5000">5s</option>
+              <option value="10000" selected>10s</option>
+              <option value="20000">20s</option>
+            </select>
+          </div>
 
-        <div class="control">
-          <label for="visibleRows">Rows</label>
-          <select id="visibleRows">
-            <option value="0">All</option>
-            <option value="11">11</option>
-            <option value="21">21</option>
-            <option value="31">31</option>
-          </select>
-        </div>
+          <div class="control">
+            <label for="visibleRows">Rows</label>
+            <select id="visibleRows">
+              <option value="0">All</option>
+              <option value="11">11</option>
+              <option value="21">21</option>
+              <option value="31">31</option>
+            </select>
+          </div>
 
-        <div class="control">
-          <label>
+          <div class="control">
+            <label for="hideDistance">Hide distance</label>
             <input type="checkbox" id="hideDistance" />
-            Hide distance
-          </label>
-        </div>
+          </div>
 
-        <div class="control">
-          <label>
+          <div class="control">
+            <label for="hideSymbols">Hide symbols</label>
             <input type="checkbox" id="hideSymbols" />
-            Hide symbols
-          </label>
+          </div>
         </div>
 
-        <div id="copyMessage" class="clipboard-message"></div>
+        <div class="controls-right">
+          <div id="refreshCounter" class="refresh-counter" aria-live="polite">
+            Next refresh: -
+          </div>
+          <div
+            id="copyMessage"
+            class="clipboard-message"
+            aria-live="polite"
+          ></div>
+        </div>
       </div>
 
       <div class="chain-wrapper">
         <table class="chain">
           <thead>
-            <tr>
-              <th>CALLS</th>
-              <th>STRIKE</th>
-              <th>PUTS</th>
+            <tr class="section-header">
+              <th class="calls-title">CALLS</th>
+              <th class="strike-title">STRIKE</th>
+              <th class="puts-title">PUTS</th>
+            </tr>
+            <tr class="column-header">
+              <th>Contract</th>
+              <th class="strike-header">Level</th>
+              <th>Contract</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>

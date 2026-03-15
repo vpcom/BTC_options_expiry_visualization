@@ -9,7 +9,10 @@ import {
 
 const BASE_COIN = "BTC";
 const COPY_MESSAGE_DISPLAY_IN_MS = 3000;
-const ui = {
+const INDEX_PRICE_FADE_DELAY_IN_MS = 180;
+const EMPTY_TABLE_MESSAGE = "No active contracts for the current expiry";
+
+const uiSettings = {
   refreshRateInMs: 10000,
   visibleRows: 0,
   hideDistance: false,
@@ -24,9 +27,12 @@ const state = {
 };
 
 let refreshTimer = null;
+let clockTimer = null;
 let copyTimeout = null;
+let indexPriceFadeTimeout = null;
 
 const elements = {
+  app: document.querySelector(".app"),
   indexPrice: document.getElementById("indexPrice"),
   expiryDate: document.getElementById("expiryDate"),
   expiryCountdown: document.getElementById("expiryCountdown"),
@@ -36,31 +42,37 @@ const elements = {
   visibleRows: document.getElementById("visibleRows"),
   hideDistance: document.getElementById("hideDistance"),
   hideSymbols: document.getElementById("hideSymbols"),
+  refreshCounter: document.getElementById("refreshCounter"),
   copyMessage: document.getElementById("copyMessage"),
 };
 
+function renderStatusRow(message) {
+  elements.tableBody.innerHTML = `<tr><td colspan="3" class="empty">${message}</td></tr>`;
+}
+
 function renderLoading() {
-  elements.tableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+  renderStatusRow("Loading...");
 }
 
 function renderError(message) {
-  elements.tableBody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
+  renderStatusRow(`Error: ${message}`);
 }
 
 function getVisibleRows(rows, atmStrike) {
-  if (!ui.visibleRows || rows.length <= ui.visibleRows) return rows;
+  if (!uiSettings.visibleRows || rows.length <= uiSettings.visibleRows)
+    return rows;
 
   const atmIndex = rows.findIndex((row) => row.strike === atmStrike);
 
-  if (atmIndex === -1) return rows.slice(0, ui.visibleRows);
+  if (atmIndex === -1) return rows.slice(0, uiSettings.visibleRows);
 
-  const half = Math.floor(ui.visibleRows / 2);
+  const half = Math.floor(uiSettings.visibleRows / 2);
   let start = Math.max(0, atmIndex - half);
-  let end = start + ui.visibleRows;
+  let end = start + uiSettings.visibleRows;
 
   if (end > rows.length) {
     end = rows.length;
-    start = end - ui.visibleRows;
+    start = end - uiSettings.visibleRows;
   }
 
   return rows.slice(start, end);
@@ -82,37 +94,136 @@ function showCopyMessage(message) {
 function copyToClipboard(text) {
   if (!text) return;
 
+  if (!navigator.clipboard?.writeText) {
+    showCopyMessage("Clipboard unavailable");
+    return;
+  }
+
   navigator.clipboard
     .writeText(text)
     .then(() => showCopyMessage("Symbol copied to clipboard"))
     .catch(() => showCopyMessage("Failed to copy"));
 }
 
+function heatOpacity(strike, indexPrice) {
+  const dist = Math.abs(strike - indexPrice) / indexPrice;
+  return Math.max(0, 0.22 - dist * 2.0);
+}
+
+function applyUiState() {
+  if (!elements.app) return;
+
+  elements.app.classList.toggle("hide-distance", uiSettings.hideDistance);
+  elements.app.classList.toggle("hide-symbols", uiSettings.hideSymbols);
+}
+
+function formatDistance(strike, indexPrice) {
+  if (!strike || !indexPrice) return "-";
+
+  const percentage = ((strike - indexPrice) / indexPrice) * 100;
+
+  return `${percentage >= 0 ? "+" : ""}${percentage.toFixed(2)}%`;
+}
+
+function getOptionCellMarkup(option, baseClass, highlightClass) {
+  const classes = [baseClass, highlightClass].filter(Boolean).join(" ");
+
+  if (!option) {
+    return `<td class="${classes}"><span class="empty">-</span></td>`;
+  }
+
+  const tagClass = option.tag === "ITM" ? "itm" : "otm";
+
+  return `<td class="${classes}">
+    <span class="tag ${tagClass}">${option.tag}</span>
+    <span class="symbol" title="Click to copy">${option.symbol}</span>
+  </td>`;
+}
+
 function renderRows(rows) {
-  const showSymbols = !ui.hideSymbols;
+  if (!rows.length) {
+    renderStatusRow(EMPTY_TABLE_MESSAGE);
+    return;
+  }
+
+  const indexPrice = state.apiData?.indexPrice ?? null;
 
   elements.tableBody.innerHTML = rows
     .map(
       (row) =>
-        `<tr class="${row.isATM ? "atm" : ""}">
-           <td class="${row.isHighlightCall ? "highlight-call" : ""}">${row.call && showSymbols ? `<span class="symbol">${row.call.symbol}</span>` : ""}</td>
-           <td>${formatStrike(row.strike)}</td>
-           <td class="${row.isHighlightPut ? "highlight-put" : ""}">${row.put && showSymbols ? `<span class="symbol">${row.put.symbol}</span>` : ""}</td>
-         </tr>`,
+        `<tr class="chain-row">
+          ${getOptionCellMarkup(
+            row.call,
+            "call-cell",
+            row.isHighlightCall ? "highlight-call" : "",
+          )}
+          <td class="strike${row.isATM ? " atm" : ""}">
+            <span>${formatStrike(row.strike)}</span>
+            <span class="distance">${formatDistance(row.strike, indexPrice)}</span>
+          </td>
+          ${getOptionCellMarkup(
+            row.put,
+            "put-cell",
+            row.isHighlightPut ? "highlight-put" : "",
+          )}
+        </tr>`,
     )
     .join("");
 }
 
+function updateIndexPrice(indexPrice) {
+  if (!elements.indexPrice) return;
+
+  const nextValue = formatPrice(indexPrice);
+  const currentValue = elements.indexPrice.textContent;
+
+  if (!currentValue || currentValue === "-" || currentValue === nextValue) {
+    elements.indexPrice.textContent = nextValue;
+    return;
+  }
+
+  if (indexPriceFadeTimeout) clearTimeout(indexPriceFadeTimeout);
+
+  elements.indexPrice.classList.add("fade-out");
+  indexPriceFadeTimeout = setTimeout(() => {
+    elements.indexPrice.textContent = nextValue;
+    elements.indexPrice.classList.remove("fade-out");
+    indexPriceFadeTimeout = null;
+  }, INDEX_PRICE_FADE_DELAY_IN_MS);
+}
+
 function renderSummary(apiData, appData) {
-  elements.indexPrice.textContent = formatPrice(apiData.indexPrice);
+  updateIndexPrice(apiData.indexPrice);
   elements.expiryDate.textContent = formatExpiry(appData.targetExpiry);
   elements.expiryCountdown.textContent = formatCountdown(appData.targetExpiry);
-  if (elements.targetStrike) {
-    elements.targetStrike.textContent = formatStrike(appData.atmStrike);
+  elements.targetStrike.textContent = formatStrike(appData.atmStrike);
+}
+
+function renderRefreshCounter() {
+  if (!elements.refreshCounter) return;
+
+  if (uiSettings.refreshRateInMs <= 0) {
+    elements.refreshCounter.textContent = "Auto-refresh off";
+    return;
   }
+
+  if (!state.nextRefreshAt) {
+    elements.refreshCounter.textContent = "Next refresh: -";
+    return;
+  }
+
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((state.nextRefreshAt - Date.now()) / 1000),
+  );
+
+  elements.refreshCounter.textContent = `Next refresh: ${remainingSeconds}s`;
 }
 
 function render() {
+  applyUiState();
+  renderRefreshCounter();
+
   if (state.error) {
     renderError(state.error.message);
     return;
@@ -143,57 +254,65 @@ async function refresh() {
     state.error = error;
   }
 
-  state.nextRefreshAt = Date.now() + ui.refreshRateInMs;
   render();
 }
 
-function countdown() {
-  if (!state.appData) return;
+function tick() {
+  if (state.appData) {
+    elements.expiryCountdown.textContent = formatCountdown(
+      state.appData.targetExpiry,
+    );
+  }
 
-  elements.expiryCountdown.textContent = formatCountdown(
-    state.appData.targetExpiry,
-  );
+  renderRefreshCounter();
 }
 
 function scheduleRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
 
-  if (ui.refreshRateInMs > 0) {
-    refreshTimer = setInterval(refresh, ui.refreshRateInMs);
+  if (uiSettings.refreshRateInMs > 0) {
+    state.nextRefreshAt = Date.now() + uiSettings.refreshRateInMs;
+    refreshTimer = setInterval(() => {
+      state.nextRefreshAt = Date.now() + uiSettings.refreshRateInMs;
+      refresh();
+    }, uiSettings.refreshRateInMs);
+  } else {
+    state.nextRefreshAt = 0;
   }
+
+  renderRefreshCounter();
 }
 
 function bindControls() {
   if (elements.refreshRate) {
     elements.refreshRate.addEventListener("change", (event) => {
-      ui.refreshRateInMs = Number(event.target.value);
+      uiSettings.refreshRateInMs = Number(event.target.value);
       scheduleRefresh();
     });
   }
 
   if (elements.visibleRows) {
     elements.visibleRows.addEventListener("change", (event) => {
-      ui.visibleRows = Number(event.target.value);
+      uiSettings.visibleRows = Number(event.target.value);
       render();
     });
   }
 
   if (elements.hideDistance) {
     elements.hideDistance.addEventListener("change", (event) => {
-      ui.hideDistance = event.target.checked;
-      render();
+      uiSettings.hideDistance = event.target.checked;
+      applyUiState();
     });
   }
 
   if (elements.hideSymbols) {
     elements.hideSymbols.addEventListener("change", (event) => {
-      ui.hideSymbols = event.target.checked;
-      render();
+      uiSettings.hideSymbols = event.target.checked;
+      applyUiState();
     });
   }
 }
 
-// For copying feature symbol to clipboard
 function bindSymbolCopy() {
   elements.tableBody.addEventListener("click", (event) => {
     const symbolElement = event.target.closest(".symbol");
@@ -204,8 +323,9 @@ function bindSymbolCopy() {
   });
 }
 
-function startCountdownTimer() {
-  setInterval(countdown, 1000);
+function startClock() {
+  if (clockTimer) clearInterval(clockTimer);
+  clockTimer = setInterval(tick, 1000);
 }
 
 bindControls();
@@ -213,4 +333,4 @@ bindSymbolCopy();
 render();
 refresh();
 scheduleRefresh();
-startCountdownTimer();
+startClock();
