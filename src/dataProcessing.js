@@ -11,8 +11,8 @@ function makeCallAndPutTags(side, strike, indexPrice) {
   return "";
 }
 
-// Create rows objects, values and flags.
-export function buildRows(rawSymbols, baseCoin, indexPrice) {
+// Create rows objects, values, flags and summary info.
+export function transformApiData(rawSymbols, baseCoin, indexPrice) {
   const symbols = rawSymbols.filter(
     (s) => s.underlying === `${baseCoin}USDT` && s.status === "TRADING",
   );

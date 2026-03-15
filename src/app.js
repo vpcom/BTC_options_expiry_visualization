@@ -1,27 +1,44 @@
 import { fetchData } from "./api.js";
-import { formatPrice, formatStrike } from "./format.js";
-import { buildRows } from "./dataProcessing.js";
+import { transformApiData } from "./dataProcessing.js";
+import {
+  formatPrice,
+  formatStrike,
+  formatExpiry,
+  formatCountdown,
+} from "./format.js";
+
+const BASE_COIN = "BTC";
 
 const state = {
-  rows: [],
-  loading: true,
+  apiData: null,
+  appData: null,
   error: null,
-  indexPrice: null,
 };
 
-const tbody = document.getElementById("chainBody");
-const indexPriceElement = document.querySelector(".stat .value");
+const elements = {
+  indexPrice: document.getElementById("indexPrice"),
+  expiryDate: document.getElementById("expiryDate"),
+  expiryCountdown: document.getElementById("expiryCountdown"),
+  targetStrike: document.getElementById("targetStrike"),
+  tableBody: document.getElementById("tableBody"),
+};
 
 function renderLoading() {
-  tbody.innerHTML = `<tr><td colspan="3">Loading...</td></tr>`;
+  if (elements.tableBody) {
+    elements.tableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+  }
 }
 
 function renderError(message) {
-  tbody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
+  if (elements.tableBody) {
+    elements.tableBody.innerHTML = `<tr><td colspan="3">Error: ${message}</td></tr>`;
+  }
 }
 
 function renderRows(rows) {
-  tbody.innerHTML = rows
+  if (!elements.tableBody) return;
+
+  elements.tableBody.innerHTML = rows
     .map(
       (row) =>
         `<tr class="${row.isATM ? "atm" : ""}">
@@ -33,35 +50,45 @@ function renderRows(rows) {
     .join("");
 }
 
+function renderSummary(apiData, appData) {
+  elements.indexPrice.textContent = formatPrice(apiData.indexPrice);
+  elements.expiryDate.textContent = formatExpiry(appData.targetExpiry);
+  elements.expiryCountdown.textContent = formatCountdown(appData.targetExpiry);
+  if (elements.targetStrike) {
+    elements.targetStrike.textContent = formatStrike(appData.targetStrike);
+  }
+}
+
 function render() {
-  if (state.loading) {
+  if (state.error) {
+    renderError(state.error.message);
+    return;
+  }
+
+  if (!state.apiData || !state.appData) {
     renderLoading();
     return;
   }
 
-  if (state.error) {
-    renderError(state.error);
-    return;
-  }
-  const { rows } = state.chain;
-
-  renderRows(rows);
+  renderSummary(state.apiData, state.appData);
+  renderRows(state.appData.rows);
 }
 
 async function load() {
   try {
-    const apiData = await fetchData();
+    const apiData = await fetchData(BASE_COIN);
 
-    console.log("Fetched data:", apiData);
+    const appData = transformApiData(
+      apiData.symbols,
+      BASE_COIN,
+      apiData.indexPrice,
+    );
 
-    state.chain = buildRows(apiData.symbols, "BTC", apiData.indexPrice);
-    indexPriceElement.textContent = formatPrice(apiData.indexPrice);
-    console.log("Built rows:", state.chain);
-
-    state.loading = false;
-  } catch (err) {
-    state.error = err.message;
-    state.loading = false;
+    state.apiData = apiData;
+    state.appData = appData;
+    state.error = null;
+  } catch (error) {
+    state.error = error;
   }
 
   render();
