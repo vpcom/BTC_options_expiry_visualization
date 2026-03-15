@@ -8,6 +8,7 @@ import {
 } from "./format.js";
 
 const BASE_COIN = "BTC";
+const COPY_MESSAGE_DISPLAY_IN_MS = 3000;
 const ui = {
   refreshRateInMs: 10000,
   visibleRows: 0,
@@ -23,6 +24,7 @@ const state = {
 };
 
 let refreshTimer = null;
+let copyTimeout = null;
 
 const elements = {
   indexPrice: document.getElementById("indexPrice"),
@@ -34,6 +36,7 @@ const elements = {
   visibleRows: document.getElementById("visibleRows"),
   hideDistance: document.getElementById("hideDistance"),
   hideSymbols: document.getElementById("hideSymbols"),
+  copyMessage: document.getElementById("copyMessage"),
 };
 
 function renderLoading() {
@@ -63,6 +66,28 @@ function getVisibleRows(rows, atmStrike) {
   return rows.slice(start, end);
 }
 
+function showCopyMessage(message) {
+  if (!elements.copyMessage) return;
+
+  elements.copyMessage.textContent = message;
+  elements.copyMessage.classList.add("visible");
+
+  if (copyTimeout) clearTimeout(copyTimeout);
+
+  copyTimeout = setTimeout(() => {
+    elements.copyMessage.classList.remove("visible");
+  }, COPY_MESSAGE_DISPLAY_IN_MS);
+}
+
+function copyToClipboard(text) {
+  if (!text) return;
+
+  navigator.clipboard
+    .writeText(text)
+    .then(() => showCopyMessage("Symbol copied to clipboard"))
+    .catch(() => showCopyMessage("Failed to copy"));
+}
+
 function renderRows(rows) {
   const showSymbols = !ui.hideSymbols;
 
@@ -70,9 +95,9 @@ function renderRows(rows) {
     .map(
       (row) =>
         `<tr class="${row.isATM ? "atm" : ""}">
-           <td class="${row.isHighlightCall ? "highlight-call" : ""}">${row.call && showSymbols ? row.call.symbol : ""}</td>
+           <td class="${row.isHighlightCall ? "highlight-call" : ""}">${row.call && showSymbols ? `<span class="symbol">${row.call.symbol}</span>` : ""}</td>
            <td>${formatStrike(row.strike)}</td>
-           <td class="${row.isHighlightPut ? "highlight-put" : ""}">${row.put && showSymbols ? row.put.symbol : ""}</td>
+           <td class="${row.isHighlightPut ? "highlight-put" : ""}">${row.put && showSymbols ? `<span class="symbol">${row.put.symbol}</span>` : ""}</td>
          </tr>`,
     )
     .join("");
@@ -168,11 +193,23 @@ function bindControls() {
   }
 }
 
+// For copying feature symbol to clipboard
+function bindSymbolCopy() {
+  elements.tableBody.addEventListener("click", (event) => {
+    const symbolElement = event.target.closest(".symbol");
+
+    if (!symbolElement) return;
+
+    copyToClipboard(symbolElement.textContent.trim());
+  });
+}
+
 function startCountdownTimer() {
   setInterval(countdown, 1000);
 }
 
 bindControls();
+bindSymbolCopy();
 render();
 refresh();
 scheduleRefresh();
