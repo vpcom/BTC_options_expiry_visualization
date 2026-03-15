@@ -30,3 +30,38 @@ export async function fetchData() {
     symbols: exchangeInfo.optionSymbols || [],
   };
 }
+
+export async function fetchQuoteDepths(symbols) {
+  const uniqueSymbols = [...new Set(symbols.filter(Boolean))];
+
+  const results = await Promise.allSettled(
+    uniqueSymbols.map(async (symbol) => {
+      const depth = await getJson(
+        `${API_BASE}/eapi/v1/depth?symbol=${encodeURIComponent(symbol)}&limit=10`,
+      );
+      const [bid, bidQty] = depth.bids?.[0] ?? [null, null];
+      const [ask, askQty] = depth.asks?.[0] ?? [null, null];
+
+      return [
+        symbol,
+        {
+          bid: bid == null ? null : Number(bid),
+          bidQty: bidQty == null ? null : Number(bidQty),
+          ask: ask == null ? null : Number(ask),
+          askQty: askQty == null ? null : Number(askQty),
+        },
+      ];
+    }),
+  );
+
+  const quotesBySymbol = new Map();
+
+  for (const result of results) {
+    if (result.status !== "fulfilled") continue;
+
+    const [symbol, quote] = result.value;
+    quotesBySymbol.set(symbol, quote);
+  }
+
+  return quotesBySymbol;
+}

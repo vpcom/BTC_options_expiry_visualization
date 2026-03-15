@@ -1,10 +1,12 @@
-import { fetchData } from "./api.js";
+import { fetchData, fetchQuoteDepths } from "./api.js";
 import { transformApiData } from "./dataProcessing.js";
 import {
   formatPrice,
   formatStrike,
   formatExpiry,
   formatCountdown,
+  formatOptionPrice,
+  formatQty,
 } from "./format.js";
 
 const BASE_COIN = "BTC";
@@ -47,7 +49,7 @@ const elements = {
 };
 
 function renderStatusRow(message) {
-  elements.tableBody.innerHTML = `<tr><td colspan="3" class="empty">${message}</td></tr>`;
+  elements.tableBody.innerHTML = `<tr><td colspan="7" class="empty">${message}</td></tr>`;
 }
 
 function renderLoading() {
@@ -119,6 +121,37 @@ function applyUiState() {
   elements.app.classList.toggle("hide-symbols", uiSettings.hideSymbols);
 }
 
+function getSymbolsForRows(rows) {
+  return rows.flatMap((row) =>
+    [row.call?.symbol, row.put?.symbol].filter(Boolean),
+  );
+}
+
+function insertQuote(rowOption, quote) {
+  if (!rowOption || !quote) return;
+
+  rowOption.bid = quote.bid;
+  rowOption.bidQty = quote.bidQty;
+  rowOption.ask = quote.ask;
+  rowOption.askQty = quote.askQty;
+}
+
+async function loadQuotes() {
+  if (!state.appData) return;
+
+  const visibleRows = getVisibleRows(
+    state.appData.rows,
+    state.appData.atmStrike,
+  );
+  const symbols = getSymbolsForRows(visibleRows);
+  const quotesBySymbol = await fetchQuoteDepths(symbols);
+
+  for (const row of state.appData.rows) {
+    insertQuote(row.call, quotesBySymbol.get(row.call?.symbol));
+    insertQuote(row.put, quotesBySymbol.get(row.put?.symbol));
+  }
+}
+
 function formatDistance(distanceToPrice) {
   if (distanceToPrice == null || Number.isNaN(distanceToPrice)) return "-";
 
@@ -160,20 +193,36 @@ function sideCellClass(side, row) {
 function renderRow(row, indexPrice, showSymbols, showDistance) {
   const opacity = heatOpacity(row.strike, indexPrice);
   const dist = row.call?.distToPrice ?? row.put?.distToPrice;
+  const call = row.call || {};
+  const put = row.put || {};
+  const callCellClass = sideCellClass("CALL", row);
+  const putCellClass = sideCellClass("PUT", row);
   const distanceHtml = showDistance
     ? `<span class="distance">${
         dist != null ? formatDistance(dist) : '<span class="empty">-</span>'
       }</span>`
     : "";
+  const callSymbolHtml =
+    showSymbols && call.symbol
+      ? `<span class="symbol" title="Click to copy">${call.symbol}</span>`
+      : "";
+  const putSymbolHtml =
+    showSymbols && put.symbol
+      ? `<span class="symbol" title="Click to copy">${put.symbol}</span>`
+      : "";
 
   return `
     <tr class="chain-row ${rowClass(row)}" style="background-color: rgba(106, 167, 255, ${opacity});">
-      <td class="${sideCellClass("CALL", row)}">${row.call ? tagHtml(row.call, showSymbols) : ""}</td>
+      <td class="${callCellClass}">${formatQty(call.bidQty)}</td>
+      <td class="${callCellClass}">${formatOptionPrice(call.bid)}</td>
+      <td class="${callCellClass}">${callSymbolHtml}</td>
       <td class="strike">
         <span class="strike-value">${formatStrike(row.strike)}</span>
         ${distanceHtml}
       </td>
-      <td class="${sideCellClass("PUT", row)}">${row.put ? tagHtml(row.put, showSymbols) : ""}</td>
+      <td class="${putCellClass}">${putSymbolHtml}</td>
+      <td class="${putCellClass}">${formatOptionPrice(put.ask)}</td>
+      <td class="${putCellClass}">${formatQty(put.askQty)}</td>
     </tr>
   `;
 }
@@ -272,6 +321,7 @@ async function refresh() {
     state.apiData = apiData;
     state.appData = appData;
     state.error = null;
+    await loadQuotes();
   } catch (error) {
     state.error = error;
   }
@@ -314,8 +364,9 @@ function bindControls() {
   }
 
   if (elements.visibleRows) {
-    elements.visibleRows.addEventListener("change", (event) => {
+    elements.visibleRows.addEventListener("change", async (event) => {
       uiSettings.visibleRows = Number(event.target.value);
+      await loadQuotes();
       render();
     });
   }

@@ -18,7 +18,7 @@ export function formatStrike(value) {
 export function formatExpiry(timeStamp) {
   if (!timeStamp) return "-";
 
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "UTC",
@@ -43,4 +43,21 @@ export function formatCountdown(expiryTimestamp) {
   if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
 
   return `${mins}m ${secs}s`;
+}
+
+export function formatQty(value) {
+  if (value == null || Number.isNaN(value)) return "-";
+
+  return Number(value).toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+  });
+}
+
+export function formatOptionPrice(value) {
+  if (value == null || Number.isNaN(value)) return "-";
+
+  return Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }

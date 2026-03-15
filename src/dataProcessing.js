@@ -48,6 +48,10 @@ export function transformApiData(rawSymbols, baseCoin, indexPrice) {
       strike,
       distToPrice: indexPrice ? (strike - indexPrice) / indexPrice : null,
       tag: makeCallAndPutTags(raw.side, strike, indexPrice),
+      bid: null,
+      bidQty: null,
+      ask: null,
+      askQty: null,
     };
     if (!rowsMap.has(strike)) {
       rowsMap.set(strike, {
